@@ -1,3 +1,5 @@
+
+//Todas las librerias de openssl que se ocupan para correr el codigo
 #include <openssl/aes.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
@@ -5,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "x86intrin.h"
+#include "x86intrin.h" //Encabezado de x86intrin
 #pragma warning(disable : 4996)
 
 #pragma intrinsic(__rdtsc)
@@ -21,41 +23,47 @@ void measured_function(volatile int* var) { (*var) = 1; }
 };*/
 
 int main() {
-    unsigned char text[] = "Hola mundo!";
-    unsigned char enc_out[80];
-    unsigned char dec_out[80];
+    unsigned char text[] = "Hola mundo!"; //Mensaje a cifrar
+    unsigned char enc_out[80]; //Salida cifrado de 80 bytes
+    unsigned char dec_out[80]; //Salida decifrado
 
-    unsigned char key[32];
-    int rc = RAND_bytes(key, sizeof(key));
-    unsigned long err = ERR_get_error();
+    unsigned char key[32]; //Genera la llave aleatoria con la que funcionara nuestra encriptacion
+    int rc = RAND_bytes(key, sizeof(key)); //Genera numeros de bytes aleatorios utilizando un generador pseudoaleatorio
+                                           //criptograficamente seguro (CSPRNG) y los almacena en buf
+    unsigned long err = ERR_get_error(); //Regresa los errores hasta que dejen de existir
     if (rc != 1)
         return -1;
 
     AES_KEY enc_key, dec_key;
 
     int variable = 0;
-    uint64_t start, end;
+    uint64_t start, end; //64 bits exactamente
 
-    printf("Calentamiento...\n");
+    printf("Calentamiento...\n\n");
     for (int i = 0; i < NTEST; i++)
         measured_function(&variable);
 
-    AES_set_encrypt_key(key, 128, &enc_key);
+    AES_set_encrypt_key(key, 128, &enc_key); //Expande la clave de usuario, que tiene una longitud de bits, en la estructura 
+                                            //de la clave para prepararla para el cifrado.
 
-    AES_encrypt(text, enc_out, &enc_key);
+    AES_encrypt(text, enc_out, &enc_key); //Encriptar utilizando el algoritmo openssl
 
-    AES_set_decrypt_key(key, 128, &dec_key);
-    AES_decrypt(enc_out, dec_out, &dec_key);
+    AES_set_decrypt_key(key, 128, &dec_key); //Expande la clave de usuario, que tiene una longitud de bits, en la estructura 
+                                            //de la clave para prepararla para el decifrado. 
 
-    printf("Original\t");
+    AES_decrypt(enc_out, dec_out, &dec_key); //Desencriptar utilizando el algoritmo openssl
+
+    printf("Mensaje a Cifrar: "); //Muestra el mensaje que queremos cifrar
     int stop = sizeof(text) - 1;
     for (int i = 0; *(text + i) != 0x00; i++)
         printf("%c ", *(text + i));
-    printf("\nEncriptado:\t");
-    for (int i = 0; *(enc_out + i) != 0x00; i++)
+
+    printf("\n\nEncriptado: "); //Imprime el mensaje encriptado
+    for (int i = 0; i < 12; i++) //Encripta dependiendo de el tamaño de nuestra cadena
         printf("%.2X ", *(enc_out + i));
-    printf("\nDesencriptado:\t");
-    for (int i = 0; i < 11; i++)
+
+    printf("\n\nDesencriptado: "); //Muestra el regreso de la encriptacion al original
+    for (int i = 0; i < 12; i++) //Tiene que ser del tamaño de nuestra cadena o nos surgira un error en la desencriptacion
         printf("%c ", *(dec_out + i));
     printf("\n");
 
